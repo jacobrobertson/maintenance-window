@@ -12,9 +12,12 @@ public class ScheduleItem {
 
 	private CronTab cronTab;
 	private long duration;
-	public ScheduleItem(CronTab cronTab, long duration) {
+	private String cronSpec;
+	
+	public ScheduleItem(CronTab cronTab, String cronSpec, long duration) {
 		this.cronTab = cronTab;
 		this.duration = duration;
+		this.cronSpec = cronSpec;
 	}
 	
 	public boolean isBlocked(long now) {
@@ -28,14 +31,17 @@ public class ScheduleItem {
 		}
 	}
 	public String toString() {
-		return cronTab.toString() + "; Duration: " + (duration / 60000) + " minutes";
+		return "Cron Spec: " + cronSpec + "; Duration: " + (duration / 60000) + " minutes";
 	}
 	public static List<ScheduleItem> parseSpec(String spec) {
 		List<ScheduleItem> items = new ArrayList<ScheduleItem>();
+		if (spec == null) {
+			return items;
+		}
 		String[] lines = spec.split("\n");
 		for (String line: lines) {
 			line = line.trim();
-			if (line.charAt(0) == '#') {
+			if (line.length() == 0 || line.charAt(0) == '#') {
 				continue;
 			}
 			String[] split = line.split(":");

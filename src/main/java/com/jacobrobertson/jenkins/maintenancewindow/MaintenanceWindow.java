@@ -9,6 +9,7 @@ import hudson.model.queue.QueueTaskDispatcher;
 import hudson.model.queue.CauseOfBlockage;
 
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import jenkins.model.Jenkins;
@@ -43,7 +44,13 @@ public class MaintenanceWindow extends QueueTaskDispatcher implements Describabl
 		} else {
 			cause = null;
 		}
-		LOGGER.info("canTake." + cause);
+		if (LOGGER.isLoggable(Level.FINE)) {
+			if (cause == null) {
+				LOGGER.fine("canTake.NoMaintenanceWindowNow");
+			} else {
+				LOGGER.fine("canTake.DuringMaintenanceWindow." + cause.getShortDescription());
+			}
+		}
 		return cause;
 	}
 	
@@ -52,6 +59,9 @@ public class MaintenanceWindow extends QueueTaskDispatcher implements Describabl
 		private String spec;
 		private transient List<ScheduleItem> items;
 
+		public DescriptorImpl() {
+			load();
+		}
 		@Override
 		public String getDisplayName() {
 			return "Maintenance Window";
@@ -59,16 +69,20 @@ public class MaintenanceWindow extends QueueTaskDispatcher implements Describabl
 		public String getSpec() {
 			return spec;
 		}
-		public List<ScheduleItem> getScheduleItems() {
-			if (items == null) {
-				items = ScheduleItem.parseSpec(spec);
+		synchronized public List<ScheduleItem> getScheduleItems() {
+			if (this.items == null) {
+				List<ScheduleItem> nitems = ScheduleItem.parseSpec(spec);
+				this.items = nitems;
+				return nitems;
+			} else {
+				return items;
 			}
-			return items;
 		}
 		@Override
 		public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
 			boolean value = super.configure(req, json);
 			spec = json.getString("spec");
+			items = null;
 			getScheduleItems();
 			save();
 			return value;
